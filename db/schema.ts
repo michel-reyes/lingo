@@ -1,4 +1,4 @@
-import { desc, relations } from 'drizzle-orm';
+import { relations } from 'drizzle-orm';
 import {
   boolean,
   integer,
@@ -6,6 +6,7 @@ import {
   pgTable,
   serial,
   text,
+  timestamp,
 } from 'drizzle-orm/pg-core';
 
 export const courses = pgTable('courses', {
@@ -14,20 +15,20 @@ export const courses = pgTable('courses', {
   imageSrc: text('image_src').notNull(),
 });
 
+export const coursesRelations = relations(courses, ({ many }) => ({
+  userProgress: many(userProgress),
+  units: many(units),
+}));
+
 export const units = pgTable('units', {
   id: serial('id').primaryKey(),
-  title: text('title').notNull(),
-  description: text('description').notNull(),
+  title: text('title').notNull(), // Unit 1
+  description: text('description').notNull(), // Learn the basics of spanish
   courseId: integer('course_id')
     .references(() => courses.id, { onDelete: 'cascade' })
     .notNull(),
   order: integer('order').notNull(),
 });
-
-export const coursesRelations = relations(courses, ({ many }) => ({
-  userProgress: many(userProgress),
-  units: many(units),
-}));
 
 export const unitsRelations = relations(units, ({ many, one }) => ({
   course: one(courses, {
@@ -81,8 +82,8 @@ export const challengeOptions = pgTable('challenge_options', {
     .references(() => challenges.id, { onDelete: 'cascade' })
     .notNull(),
   text: text('text').notNull(),
-  correctOption: boolean('correct').notNull(),
-  imageSorc: text('image_src'),
+  correct: boolean('correct').notNull(),
+  imageSrc: text('image_src'),
   audioSrc: text('audio_src'),
 });
 
@@ -117,11 +118,11 @@ export const challengeProgressRelations = relations(
 
 export const userProgress = pgTable('user_progress', {
   userId: text('user_id').primaryKey(),
-  activeCourseId: integer('active_course_id')
-    .notNull()
-    .references(() => courses.id, { onDelete: 'cascade' }),
   userName: text('user_name').notNull().default('User'),
   userImageSrc: text('user_image_src').notNull().default('/mascot.svg'),
+  activeCourseId: integer('active_course_id').references(() => courses.id, {
+    onDelete: 'cascade',
+  }),
   hearts: integer('hearts').notNull().default(5),
   points: integer('points').notNull().default(0),
 });
@@ -132,3 +133,12 @@ export const userProgressRelations = relations(userProgress, ({ one }) => ({
     references: [courses.id],
   }),
 }));
+
+export const userSubscription = pgTable('user_subscription', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').notNull().unique(),
+  stripeCustomerId: text('stripe_customer_id').notNull().unique(),
+  stripeSubscriptionId: text('stripe_subscription_id').notNull().unique(),
+  stripePriceId: text('stripe_price_id').notNull(),
+  stripeCurrentPeriodEnd: timestamp('stripe_current_period_end').notNull(),
+});
