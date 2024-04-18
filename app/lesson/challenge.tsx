@@ -1,5 +1,6 @@
-import { challengeOptions, challenges } from '@/db/schema';
 import { cn } from '@/lib/utils';
+import { challengeOptions, challenges } from '@/db/schema';
+
 import { Card } from './card';
 
 type Props = {
@@ -7,7 +8,7 @@ type Props = {
   onSelect: (id: number) => void;
   status: 'correct' | 'wrong' | 'none';
   selectedOption?: number;
-  disabled: boolean;
+  disabled?: boolean;
   type: (typeof challenges.$inferSelect)['type'];
 };
 
@@ -35,7 +36,7 @@ export const Challenge = ({
           text={option.text}
           imageSrc={option.imageSrc}
           shortcut={`${i + 1}`}
-          selected={true || selectedOption === option.id}
+          selected={selectedOption === option.id}
           onClick={() => onSelect(option.id)}
           status={status}
           audioSrc={option.audioSrc}

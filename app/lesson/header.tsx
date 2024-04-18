@@ -3,7 +3,6 @@ import { InfinityIcon, X } from 'lucide-react';
 
 import { Progress } from '@/components/ui/progress';
 import { useExitModal } from '@/store/use-exit-modal';
-// import { useExitModal } from '@/store/use-exit-modal';
 
 type Props = {
   hearts: number;
