@@ -1,19 +1,23 @@
 'use client';
 
-import { challenges, challengeOptions } from '@/db/schema';
-import { useState, useTransition } from 'react';
-import { Header } from './header';
-import { QuestionBubble } from './question-bubble';
-import { Challenge } from './challenge';
-import { Footer } from './footer';
+import { toast } from 'sonner';
 import Image from 'next/image';
 import Confetti from 'react-confetti';
-import { upsertChallengeProgress } from '@/actions/challenge-progress';
-import { toast } from 'sonner';
-import { reduceHearts } from '@/actions/user-progress';
-import { useAudio, useWindowSize } from 'react-use';
-import { ResultCard } from './result-card';
 import { useRouter } from 'next/navigation';
+import { useState, useTransition } from 'react';
+import { useAudio, useWindowSize, useMount } from 'react-use';
+
+import { reduceHearts } from '@/actions/user-progress';
+import { useHeartsModal } from '@/store/use-hearts-modal';
+import { challengeOptions, challenges, userSubscription } from '@/db/schema';
+import { usePracticeModal } from '@/store/use-practice-modal';
+import { upsertChallengeProgress } from '@/actions/challenge-progress';
+
+import { Header } from './header';
+import { Footer } from './footer';
+import { Challenge } from './challenge';
+import { ResultCard } from './result-card';
+import { QuestionBubble } from './question-bubble';
 
 type Props = {
   initialPercentage: number;
@@ -23,8 +27,13 @@ type Props = {
     completed: boolean;
     challengeOptions: (typeof challengeOptions.$inferSelect)[];
   })[];
-  userSubscription: any;
+  userSubscription:
+    | (typeof userSubscription.$inferSelect & {
+        isActive: boolean;
+      })
+    | null;
 };
+
 export const Quiz = ({
   initialPercentage,
   initialHearts,
@@ -32,16 +41,31 @@ export const Quiz = ({
   initialLessonChallenges,
   userSubscription,
 }: Props) => {
+  const { open: openHeartsModal } = useHeartsModal();
+  const { open: openPracticeModal } = usePracticeModal();
+
+  useMount(() => {
+    if (initialPercentage === 100) {
+      openPracticeModal();
+    }
+  });
+
+  const { width, height } = useWindowSize();
+
+  const router = useRouter();
+
   const [finishAudio] = useAudio({ src: '/finish.mp3', autoPlay: true });
   const [correctAudio, _c, correctControls] = useAudio({ src: '/correct.wav' });
   const [incorrectAudio, _i, incorrectControls] = useAudio({
     src: '/incorrect.wav',
   });
-  const [lessonId] = useState(initialLessonId);
   const [pending, startTransition] = useTransition();
 
+  const [lessonId] = useState(initialLessonId);
   const [hearts, setHearts] = useState(initialHearts);
-  const [percentage, setPercentage] = useState(initialPercentage);
+  const [percentage, setPercentage] = useState(() => {
+    return initialPercentage === 100 ? 0 : initialPercentage;
+  });
   const [challenges] = useState(initialLessonChallenges);
   const [activeIndex, setActiveIndex] = useState(() => {
     const uncompletedIndex = challenges.findIndex(
@@ -50,10 +74,8 @@ export const Quiz = ({
     return uncompletedIndex === -1 ? 0 : uncompletedIndex;
   });
 
-  const [selectedOption, setSelectedOption] = useState<number | undefined>(0);
+  const [selectedOption, setSelectedOption] = useState<number>();
   const [status, setStatus] = useState<'correct' | 'wrong' | 'none'>('none');
-  const router = useRouter();
-  const { width, height } = useWindowSize();
 
   const challenge = challenges[activeIndex];
   const options = challenge?.challengeOptions ?? [];
@@ -64,6 +86,7 @@ export const Quiz = ({
 
   const onSelect = (id: number) => {
     if (status !== 'none') return;
+
     setSelectedOption(id);
   };
 
@@ -94,7 +117,7 @@ export const Quiz = ({
         upsertChallengeProgress(challenge.id)
           .then((response) => {
             if (response?.error === 'hearts') {
-              // openHeartsModal();
+              openHeartsModal();
               return;
             }
 
@@ -114,7 +137,7 @@ export const Quiz = ({
         reduceHearts(challenge.id)
           .then((response) => {
             if (response?.error === 'hearts') {
-              // openHeartsModal();
+              openHeartsModal();
               return;
             }
 
@@ -177,6 +200,7 @@ export const Quiz = ({
     challenge.type === 'ASSIST'
       ? 'Select the correct meaning'
       : challenge.question;
+
   return (
     <>
       {incorrectAudio}
