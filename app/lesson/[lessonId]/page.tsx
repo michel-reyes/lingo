@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 
 import { getLesson, getUserProgress, getUserSubscription } from '@/db/queries';
 
-import { Quiz } from '@/app/lesson/quiz';
+import { Quiz } from '../quiz';
 
 type Props = {
   params: {

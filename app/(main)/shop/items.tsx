@@ -7,7 +7,7 @@ import { useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { POINTS_TO_REFILL } from '@/constants';
 import { refillHearts } from '@/actions/user-progress';
-// import { createStripeUrl } from '@/actions/user-subscription';
+import { createStripeUrl } from '@/actions/user-subscription';
 
 type Props = {
   hearts: number;
@@ -28,17 +28,17 @@ export const Items = ({ hearts, points, hasActiveSubscription }: Props) => {
     });
   };
 
-  // const onUpgrade = () => {
-  //   startTransition(() => {
-  //     createStripeUrl()
-  //       .then((response) => {
-  //         if (response.data) {
-  //           window.location.href = response.data;
-  //         }
-  //       })
-  //       .catch(() => toast.error('Something went wrong'));
-  //   });
-  // };
+  const onUpgrade = () => {
+    startTransition(() => {
+      createStripeUrl()
+        .then((response) => {
+          if (response.data) {
+            window.location.href = response.data;
+          }
+        })
+        .catch(() => toast.error('Something went wrong'));
+    });
+  };
 
   return (
     <ul className="w-full">
@@ -70,7 +70,7 @@ export const Items = ({ hearts, points, hasActiveSubscription }: Props) => {
             Unlimited hearts
           </p>
         </div>
-        <Button onClick={() => {}} disabled={pending}>
+        <Button onClick={onUpgrade} disabled={pending}>
           {hasActiveSubscription ? 'settings' : 'upgrade'}
         </Button>
       </div>

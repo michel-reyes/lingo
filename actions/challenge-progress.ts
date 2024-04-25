@@ -1,19 +1,22 @@
 'use server';
 
-import db from '@/db/drizzle';
-import { getUserProgress } from '@/db/queries';
-import { challengeProgress, challenges, userProgress } from '@/db/schema';
-import { auth, currentUser } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
+import db from '@/db/drizzle';
+import { getUserProgress, getUserSubscription } from '@/db/queries';
+import { challengeProgress, challenges, userProgress } from '@/db/schema';
+
 export const upsertChallengeProgress = async (challengeId: number) => {
   const { userId } = await auth();
+
   if (!userId) {
-    throw new Error('User not found');
+    throw new Error('Unauthorized');
   }
 
   const currentUserProgress = await getUserProgress();
+  const userSubscription = await getUserSubscription();
 
   if (!currentUserProgress) {
     throw new Error('User progress not found');
@@ -38,8 +41,12 @@ export const upsertChallengeProgress = async (challengeId: number) => {
 
   const isPractice = !!existingChallengeProgress;
 
-  if (currentUserProgress.hearts <= 0 && !isPractice) {
-    return { error: 'harts' };
+  if (
+    currentUserProgress.hearts === 0 &&
+    !isPractice &&
+    !userSubscription?.isActive
+  ) {
+    return { error: 'hearts' };
   }
 
   if (isPractice) {
@@ -63,13 +70,12 @@ export const upsertChallengeProgress = async (challengeId: number) => {
     revalidatePath('/quests');
     revalidatePath('/leaderboard');
     revalidatePath(`/lesson/${lessonId}`);
-
     return;
   }
 
   await db.insert(challengeProgress).values({
-    userId,
     challengeId,
+    userId,
     completed: true,
   });
 
